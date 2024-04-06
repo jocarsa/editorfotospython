@@ -170,7 +170,7 @@ class ImageDisplayApp:
             # Save the copied image with original orientation and EXIF data
             copied_image = Image.open(destination_path)
             copied_image = ImageOps.autocontrast(copied_image) if self.apply_auto_contrast else copied_image
-            copied_image.save(destination_path, exif=copied_image.info.get('exif'))
+            copied_image.save(destination_path, quality=95, exif=copied_image.info.get('exif'))
             
             print(f"Image copied to {destination_path} and renamed to {new_name}")
 
