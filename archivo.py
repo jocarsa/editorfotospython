@@ -1,7 +1,7 @@
 import os
 from PIL import Image, ImageTk, ExifTags, ImageOps
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 import shutil
 
 class ImageDisplayApp:
@@ -11,12 +11,14 @@ class ImageDisplayApp:
         self.image_list = []
         self.current_index = 0
         self.current_image_path = None
+        self.apply_auto_contrast = True  # Default value for auto contrast
+        self.copy_hotkey = "z"  # Default hotkey for copying
         
         self.root = tk.Tk()
         self.root.title("Image Viewer")
         self.root.bind("<Right>", self.show_next_image)
         self.root.bind("<Left>", self.show_previous_image)
-        self.root.bind("z", self.copy_image)
+        self.root.bind(self.copy_hotkey, self.copy_image)  # Bind the hotkey for copying
         
         self.label = tk.Label(self.root)
         self.label.pack()
@@ -26,7 +28,6 @@ class ImageDisplayApp:
         self.root.mainloop()
     
     def create_menu(self):
-        print("menu")
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
         
@@ -37,9 +38,38 @@ class ImageDisplayApp:
         file_menu.add_command(label="Exit", command=self.root.quit)
         menubar.add_cascade(label="File", menu=file_menu)
         
+        settings_menu = tk.Menu(menubar, tearoff=0)
+        settings_menu.add_command(label="Configure", command=self.configure_settings)  # Add the Configure option
+        menubar.add_cascade(label="Settings", menu=settings_menu)
+        
         help_menu = tk.Menu(menubar, tearoff=0)
         help_menu.add_command(label="About", command=self.show_credits)
         menubar.add_cascade(label="Help", menu=help_menu)
+    
+    def configure_settings(self):
+        # Create a Toplevel window for configuration settings
+        config_window = tk.Toplevel(self.root)
+        config_window.title("Configuration")
+        
+        # Add checkboxes or radio buttons for auto contrast and entry field for hotkey
+        auto_contrast_var = tk.BooleanVar(value=self.apply_auto_contrast)
+        auto_contrast_check = tk.Checkbutton(config_window, text="Apply Auto Contrast", variable=auto_contrast_var)
+        auto_contrast_check.pack()
+        
+        hotkey_label = tk.Label(config_window, text="Set Copy Hotkey:")
+        hotkey_label.pack()
+        hotkey_entry = tk.Entry(config_window)
+        hotkey_entry.insert(0, self.copy_hotkey)
+        hotkey_entry.pack()
+        
+        # Save button to apply changes
+        def save_settings():
+            self.apply_auto_contrast = auto_contrast_var.get()
+            self.copy_hotkey = hotkey_entry.get()
+            config_window.destroy()
+        
+        save_button = tk.Button(config_window, text="Save", command=save_settings)
+        save_button.pack()
     
     def set_origin_folder(self):
         folder_path = filedialog.askdirectory()
@@ -66,6 +96,9 @@ class ImageDisplayApp:
             image_path = self.image_list[index]
             image = Image.open(image_path)
             image = self.rotate_image(image)
+            
+            if self.apply_auto_contrast:  # Apply auto contrast if enabled
+                image = ImageOps.autocontrast(image)
             
             window_height = self.root.winfo_screenheight() - 100  # Adjust 100 as needed for window decorations
             width, height = image.size
@@ -136,7 +169,7 @@ class ImageDisplayApp:
             
             # Save the copied image with original orientation and EXIF data
             copied_image = Image.open(destination_path)
-            copied_image = ImageOps.autocontrast(copied_image)
+            copied_image = ImageOps.autocontrast(copied_image) if self.apply_auto_contrast else copied_image
             copied_image.save(destination_path, exif=copied_image.info.get('exif'))
             
             print(f"Image copied to {destination_path} and renamed to {new_name}")
